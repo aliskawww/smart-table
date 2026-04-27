@@ -26,13 +26,17 @@ function collectState() {
   const rowsPerPage = parseInt(state.rowsPerPage);
   const page = parseInt(state.page ?? 1);
 
-  // Преобразуем фильтры диапазона в числа
+  // Преобразуем значения для фильтрации по диапазону
   const totalFrom =
-    state.totalFrom !== "" && state.totalFrom !== undefined
+    state.totalFrom !== "" &&
+    state.totalFrom !== undefined &&
+    state.totalFrom !== null
       ? parseFloat(state.totalFrom)
       : undefined;
   const totalTo =
-    state.totalTo !== "" && state.totalTo !== undefined
+    state.totalTo !== "" &&
+    state.totalTo !== undefined &&
+    state.totalTo !== null
       ? parseFloat(state.totalTo)
       : undefined;
 

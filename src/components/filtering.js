@@ -1,8 +1,5 @@
 import { createComparison, defaultRules } from "../lib/compare.js";
 
-// defaultRules уже является массивом правил
-const compare = createComparison(defaultRules);
-
 export function initFiltering(elements, indexes) {
   // @todo: #4.1 — заполнить выпадающие списки опциями
   Object.keys(indexes).forEach((elementName) => {
@@ -21,7 +18,8 @@ export function initFiltering(elements, indexes) {
   return (data, state, action) => {
     // @todo: #4.2 — обработать очистку поля
     if (action && action.name === "clear") {
-      const parent = action.closest(".filter-field");
+      const parent =
+        action.closest(".filter-field") || action.parentElement?.parentElement;
       if (parent) {
         const input = parent.querySelector("input, select");
         if (input) {
@@ -36,22 +34,41 @@ export function initFiltering(elements, indexes) {
 
     // @todo: #4.5 — отфильтровать данные используя компаратор
 
-    // Преобразуем totalFrom и totalTo в числа перед фильтрацией
-    const stateForCompare = { ...state };
+    // Создаём копию state с числовыми значениями для диапазонов
+    const processedState = { ...state };
 
+    // Преобразуем totalFrom в число
     if (
-      stateForCompare.totalFrom !== undefined &&
-      stateForCompare.totalFrom !== ""
+      processedState.totalFrom !== undefined &&
+      processedState.totalFrom !== ""
     ) {
-      stateForCompare.totalFrom = parseFloat(stateForCompare.totalFrom);
-    }
-    if (
-      stateForCompare.totalTo !== undefined &&
-      stateForCompare.totalTo !== ""
-    ) {
-      stateForCompare.totalTo = parseFloat(stateForCompare.totalTo);
+      processedState.totalFrom = parseFloat(processedState.totalFrom);
+    } else {
+      processedState.totalFrom = undefined;
     }
 
-    return data.filter((row) => compare(row, stateForCompare));
+    // Преобразуем totalTo в число
+    if (processedState.totalTo !== undefined && processedState.totalTo !== "") {
+      processedState.totalTo = parseFloat(processedState.totalTo);
+    } else {
+      processedState.totalTo = undefined;
+    }
+
+    // Для total используем массив [from, to] для правила arrayAsRange
+    if (
+      processedState.totalFrom !== undefined ||
+      processedState.totalTo !== undefined
+    ) {
+      processedState.total = [processedState.totalFrom, processedState.totalTo];
+    }
+
+    // Создаём компаратор с правилами, включая arrayAsRange
+    const compareWithRange = createComparison([
+      "skipEmptyTargetValues",
+      "arrayAsRange",
+      "stringIncludes",
+    ]);
+
+    return data.filter((row) => compareWithRange(row, processedState));
   };
 }
