@@ -78,7 +78,7 @@ const sampleTable = initTable(
   },
   render,
 );
-sampleTable.render(sourceData.slice(0, 10));
+
 
 // @todo: инициализация
 const { applyPagination, updatePagination } = initPagination(
