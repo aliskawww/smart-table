@@ -1,12 +1,19 @@
 import { cloneTemplate } from "../lib/utils.js";
 
+/**
+ * Инициализирует таблицу и вызывает коллбэк при любых изменениях и нажатиях на кнопки
+ *
+ * @param {Object} settings
+ * @param {(action: HTMLButtonElement | undefined) => void} onAction
+ * @returns {{container: Node, elements: *, render: render}}
+ */
 export function initTable(settings, onAction) {
   const { tableTemplate, rowTemplate, before, after } = settings;
   const root = cloneTemplate(tableTemplate);
 
-  // Добавляем дополнительные шаблоны
+  // @todo: #1.2 —  вывести дополнительные шаблоны до и после таблицы
   if (before && Array.isArray(before)) {
-    [...before].reverse().forEach((subName) => {
+    before.reverse().forEach((subName) => {
       root[subName] = cloneTemplate(subName);
       root.container.prepend(root[subName].container);
     });
@@ -19,58 +26,42 @@ export function initTable(settings, onAction) {
     });
   }
 
-  // Обработка событий
-  root.container.addEventListener("change", () => onAction());
-  root.container.addEventListener("reset", () =>
-    setTimeout(() => onAction(), 0),
-  );
+  // @todo: #1.3 —  обработать события и вызвать onAction()
+  root.container.addEventListener("change", () => {
+    onAction();
+  });
+
+  root.container.addEventListener("reset", () => {
+    setTimeout(() => onAction(), 0);
+  });
+
   root.container.addEventListener("submit", (e) => {
     e.preventDefault();
     onAction(e.submitter);
   });
 
   const render = (data) => {
-    const rowsContainer = root.container.querySelector('[data-name="rows"]');
-
-    if (!rowsContainer) {
-      console.error("Контейнер rows не найден!");
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      rowsContainer.innerHTML = '<div class="empty-row">Нет данных</div>';
-      return;
-    }
-
+    // @todo: #1.1 — преобразовать данные в массив строк на основе шаблона rowTemplate
     const nextRows = data.map((item) => {
       const row = cloneTemplate(rowTemplate);
 
-      // Заполняем ячейки
-      const dateCell = row.container.querySelector('[data-name="date"]');
-      const customerCell = row.container.querySelector(
-        '[data-name="customer"]',
-      );
-      const sellerCell = row.container.querySelector('[data-name="seller"]');
-      const totalCell = row.container.querySelector('[data-name="total"]');
+      Object.keys(item).forEach((key) => {
+        if (row.elements[key]) {
+          const element = row.elements[key];
+          const value = item[key];
 
-      if (dateCell) dateCell.textContent = item.date || "";
-      if (customerCell) customerCell.textContent = item.customer || "";
-      if (sellerCell) sellerCell.textContent = item.seller || "";
-      if (totalCell) totalCell.textContent = item.total || "";
-
-      row.container.setAttribute("data-testid", "table-row");
-      row.container.setAttribute("role", "row");
-
-      const cells = row.container.querySelectorAll("[data-name]");
-      cells.forEach((cell) => {
-        cell.setAttribute("role", "cell");
+          if (element.tagName === "INPUT" || element.tagName === "SELECT") {
+            element.value = value;
+          } else {
+            element.textContent = value;
+          }
+        }
       });
 
       return row.container;
     });
 
-    console.log("Всего создано строк:", nextRows.length);
-    rowsContainer.replaceChildren(...nextRows);
+    root.elements.rows.replaceChildren(...nextRows);
   };
 
   return { ...root, render };
