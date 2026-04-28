@@ -8,29 +8,24 @@ export function initSorting(columns) {
     if (action && action.name === "sort") {
       const currentValue = action.dataset.value;
 
+      // Цикл сортировки: none -> up -> down -> none
       let nextValue;
-      if (currentValue === "none" || currentValue === "up") {
+      if (currentValue === "none") {
+        nextValue = "up";
+      } else if (currentValue === "up") {
         nextValue = "down";
-      } else if (currentValue === "down") {
-        nextValue = "none";
       } else {
-        nextValue = sortMap[currentValue] || "asc";
+        nextValue = "none";
       }
 
       action.dataset.value = nextValue;
       field = action.dataset.field;
       order = nextValue;
 
+      // Сбрасываем все остальные колонки
       columns.forEach((column) => {
         if (column.dataset.field !== action.dataset.field) {
           column.dataset.value = "none";
-        }
-      });
-    } else {
-      columns.forEach((column) => {
-        if (column.dataset.value !== "none") {
-          field = column.dataset.field;
-          order = column.dataset.value;
         }
       });
     }
@@ -38,15 +33,21 @@ export function initSorting(columns) {
     const newQuery = { ...query };
     delete newQuery.sort;
 
-    let apiOrder = null;
-    if (order === "up" || order === "asc") {
-      apiOrder = "asc";
-    } else if (order === "down" || order === "desc") {
-      apiOrder = "desc";
+    // Ищем активную сортировку в колонках
+    let activeField = null;
+    let activeOrder = null;
+
+    for (const column of columns) {
+      const value = column.dataset.value;
+      if (value !== "none") {
+        activeField = column.dataset.field;
+        activeOrder = value === "up" ? "asc" : "desc";
+        break;
+      }
     }
 
-    if (field && apiOrder && order !== "none") {
-      const sort = `${field}:${apiOrder}`;
+    if (activeField && activeOrder) {
+      const sort = `${activeField}:${activeOrder}`;
       return Object.assign({}, newQuery, { sort });
     }
 

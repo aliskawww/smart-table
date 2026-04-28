@@ -76,12 +76,15 @@ export function initData(sourceData) {
           const value = query.filter[key];
           if (value !== undefined && value !== null && value !== "") {
             if (key === "date") {
+              // Для даты - частичное совпадение (как в тестах)
               data = data.filter((row) => row.date.includes(value));
             } else if (key === "customer") {
+              // Для покупателя - частичное совпадение (регистронезависимо)
               data = data.filter((row) =>
                 row.customer.toLowerCase().includes(value.toLowerCase()),
               );
             } else if (key === "searchBySeller" || key === "seller") {
+              // Для продавца - точное совпадение
               data = data.filter((row) => row.seller === value);
             } else if (key === "total") {
               const numValue = parseFloat(value);
@@ -107,45 +110,28 @@ export function initData(sourceData) {
       if (query.sort) {
         const [field, order] = query.sort.split(":");
 
-        // Преобразуем 'up' и 'down' в 'asc' и 'desc'
-        let sortOrder = order;
-        if (order === "up") sortOrder = "asc";
-        if (order === "down") sortOrder = "desc";
-
         data.sort((a, b) => {
           let aVal = a[field];
           let bVal = b[field];
 
-          // Для total преобразуем в число
           if (field === "total") {
             aVal = parseFloat(aVal);
             bVal = parseFloat(bVal);
-          }
-          // Для date - сравниваем как строки (формат YYYY-MM-DD корректно сравнивается)
-          else if (field === "date") {
-            aVal = aVal;
-            bVal = bVal;
-          }
-          // Для customer и seller - сравниваем как строки
-          else if (field === "customer" || field === "seller") {
-            aVal = aVal || "";
-            bVal = bVal || "";
+          } else if (field === "date") {
+            // Для дат преобразуем в timestamp для правильного сравнения
+            aVal = new Date(aVal).getTime();
+            bVal = new Date(bVal).getTime();
+          } else if (field === "customer" || field === "seller") {
+            aVal = (aVal || "").toLowerCase();
+            bVal = (bVal || "").toLowerCase();
           }
 
-          // Сравнение с учетом регистра для строк
-          if (sortOrder === "asc") {
-            if (aVal < bVal) return -1;
-            if (aVal > bVal) return 1;
-            return 0;
+          if (order === "asc") {
+            return aVal > bVal ? 1 : -1;
           } else {
-            if (aVal > bVal) return -1;
-            if (aVal < bVal) return 1;
-            return 0;
+            return aVal < bVal ? 1 : -1;
           }
         });
-      } else {
-        // Сортировка по умолчанию по id
-        data.sort((a, b) => a.id - b.id);
       }
 
       const total = data.length;
