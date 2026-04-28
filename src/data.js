@@ -8,11 +8,6 @@ export function initData(sourceData) {
   let lastResult = null;
   let lastQuery = null;
 
-  // Проверяем, запущены ли тесты
-  const isTestEnvironment =
-    process.env.NODE_ENV === "test" ||
-    (typeof process !== "undefined" && process.env?.TESTING === "true");
-
   const mapRecords = (data) =>
     data.map((item) => ({
       id: item.receipt_id,
@@ -23,8 +18,8 @@ export function initData(sourceData) {
     }));
 
   const getIndexes = async () => {
-    // Для тестов используем локальные данные
-    if (isTestEnvironment && sourceData) {
+    // Если есть локальные данные (для тестов), используем их
+    if (sourceData && sourceData.sellers && sourceData.customers) {
       sellers = makeIndex(
         sourceData.sellers,
         "id",
@@ -39,19 +34,24 @@ export function initData(sourceData) {
     }
 
     if (!sellers || !customers) {
-      [sellers, customers] = await Promise.all([
-        fetch(`${BASE_URL}/sellers`).then((res) => res.json()),
-        fetch(`${BASE_URL}/customers`).then((res) => res.json()),
-      ]);
+      try {
+        [sellers, customers] = await Promise.all([
+          fetch(`${BASE_URL}/sellers`).then((res) => res.json()),
+          fetch(`${BASE_URL}/customers`).then((res) => res.json()),
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch indexes:", error);
+        throw error;
+      }
     }
 
     return { sellers, customers };
   };
 
-  const getRecords = async (query, isUpdated = false) => {
-    // Для тестов используем локальные данные
-    if (isTestEnvironment && sourceData) {
-      const data = sourceData.purchase_records.map((item) => ({
+  const getRecords = async (query = {}, isUpdated = false) => {
+    // Если есть локальные данные (для тестов), используем их
+    if (sourceData && sourceData.purchase_records && sellers && customers) {
+      let data = sourceData.purchase_records.map((item) => ({
         id: item.receipt_id,
         date: item.date,
         seller: sellers[item.seller_id],
@@ -59,41 +59,65 @@ export function initData(sourceData) {
         total: item.total_amount,
       }));
 
-      // Применяем фильтрацию, сортировку и пагинацию для тестов
-      let filteredData = [...data];
-
-      // Простая фильтрация для тестов
+      // Применяем поиск
       if (query.search) {
         const searchLower = query.search.toLowerCase();
-        filteredData = filteredData.filter(
+        data = data.filter(
           (row) =>
             row.date.toLowerCase().includes(searchLower) ||
-            row.seller?.toLowerCase().includes(searchLower) ||
-            row.customer?.toLowerCase().includes(searchLower) ||
+            (row.seller && row.seller.toLowerCase().includes(searchLower)) ||
+            (row.customer &&
+              row.customer.toLowerCase().includes(searchLower)) ||
             row.total.toString().includes(searchLower),
         );
       }
 
-      if (query.sort) {
-        const [field, order] = query.sort.split(":");
-        filteredData.sort((a, b) => {
-          if (order === "asc") {
-            return a[field] > b[field] ? 1 : -1;
-          } else {
-            return a[field] < b[field] ? 1 : -1;
+      // Применяем фильтры
+      if (query.filter) {
+        Object.keys(query.filter).forEach((key) => {
+          const value = query.filter[key];
+          if (value) {
+            if (key === "seller") {
+              data = data.filter((row) => row.seller === value);
+            } else if (key === "date") {
+              data = data.filter((row) => row.date === value);
+            } else if (key === "customer") {
+              data = data.filter((row) => row.customer === value);
+            } else if (key === "total") {
+              data = data.filter((row) => row.total === parseFloat(value));
+            }
           }
         });
       }
 
-      const total = filteredData.length;
+      // Применяем сортировку
+      if (query.sort) {
+        const [field, order] = query.sort.split(":");
+        data.sort((a, b) => {
+          let aVal = a[field];
+          let bVal = b[field];
+          if (field === "total") {
+            aVal = parseFloat(aVal);
+            bVal = parseFloat(bVal);
+          }
+          if (order === "asc") {
+            return aVal > bVal ? 1 : -1;
+          } else {
+            return aVal < bVal ? 1 : -1;
+          }
+        });
+      }
+
+      const total = data.length;
       const limit = parseInt(query.limit) || 10;
       const page = parseInt(query.page) || 1;
       const start = (page - 1) * limit;
-      const items = filteredData.slice(start, start + limit);
+      const items = data.slice(start, start + limit);
 
       return { total, items };
     }
 
+    // Для реального API
     const qs = new URLSearchParams(query);
     const nextQuery = qs.toString();
 
@@ -101,16 +125,21 @@ export function initData(sourceData) {
       return lastResult;
     }
 
-    const response = await fetch(`${BASE_URL}/records?${nextQuery}`);
-    const records = await response.json();
+    try {
+      const response = await fetch(`${BASE_URL}/records?${nextQuery}`);
+      const records = await response.json();
 
-    lastQuery = nextQuery;
-    lastResult = {
-      total: records.total,
-      items: mapRecords(records.items),
-    };
+      lastQuery = nextQuery;
+      lastResult = {
+        total: records.total,
+        items: mapRecords(records.items),
+      };
 
-    return lastResult;
+      return lastResult;
+    } catch (error) {
+      console.error("Failed to fetch records:", error);
+      throw error;
+    }
   };
 
   return {

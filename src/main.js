@@ -81,12 +81,11 @@ if (appRoot) {
 
 async function init() {
   const indexes = await api.getIndexes();
-  if (indexes.sellers) {
+  if (indexes.sellers && sampleTable.filter.elements.searchBySeller) {
     updateIndexes(sampleTable.filter.elements, {
       searchBySeller: indexes.sellers,
     });
   }
-  // Вызываем начальный рендер
   await render();
 }
 
