@@ -25,6 +25,11 @@ export function initSorting(columns) {
     }
 
     const sort = field && order !== "none" ? `${field}:${order}` : null;
-    return sort ? Object.assign({}, query, { sort }) : query;
+
+    // Для тестов: если сортировка не выбрана, не добавляем параметр sort
+    if (sort) {
+      return Object.assign({}, query, { sort });
+    }
+    return query;
   };
 }

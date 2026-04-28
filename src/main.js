@@ -86,7 +86,9 @@ async function init() {
       searchBySeller: indexes.sellers,
     });
   }
+  // Ждем рендер после инициализации
   await render();
 }
 
+// Запускаем инициализацию
 init().catch(console.error);

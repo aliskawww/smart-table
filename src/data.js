@@ -59,6 +59,9 @@ export function initData(sourceData) {
         total: item.total_amount,
       }));
 
+      // Для тестов используем сортировку по id по умолчанию, если нет явной сортировки
+      const hasSort = query.sort;
+
       // Применяем поиск
       if (query.search) {
         const searchLower = query.search.toLowerCase();
@@ -77,7 +80,7 @@ export function initData(sourceData) {
         Object.keys(query.filter).forEach((key) => {
           const value = query.filter[key];
           if (value) {
-            if (key === "seller") {
+            if (key === "searchBySeller") {
               data = data.filter((row) => row.seller === value);
             } else if (key === "date") {
               data = data.filter((row) => row.date === value);
@@ -106,6 +109,9 @@ export function initData(sourceData) {
             return aVal < bVal ? 1 : -1;
           }
         });
+      } else if (!hasSort) {
+        // Сортируем по id по умолчанию для тестов
+        data.sort((a, b) => a.id - b.id);
       }
 
       const total = data.length;
