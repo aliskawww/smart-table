@@ -24,25 +24,27 @@ export function initFiltering(elements) {
       const input = parent?.querySelector("input, select");
       if (input) {
         input.value = "";
-        const fieldName = action.dataset.field;
-        if (fieldName && state[fieldName] !== undefined) {
-          state[fieldName] = "";
-        }
       }
+      return query;
     }
 
     const filter = {};
+
+    // Собираем значения из всех полей фильтрации
     Object.keys(elements).forEach((key) => {
       const element = elements[key];
-      if (
-        element &&
-        ["INPUT", "SELECT"].includes(element.tagName) &&
-        element.value
-      ) {
-        filter[key] = element.value;
+      if (element && ["INPUT", "SELECT"].includes(element.tagName)) {
+        const value = element.value;
+        if (value !== undefined && value !== null && value !== "") {
+          // Используем name элемента для ключа фильтра
+          const filterKey = element.getAttribute("name") || key;
+          filter[filterKey] = value;
+          console.log("Filter added:", filterKey, value); // Для отладки
+        }
       }
     });
 
+    console.log("Final filter object:", filter); // Для отладки
     return Object.keys(filter).length
       ? Object.assign({}, query, { filter })
       : query;

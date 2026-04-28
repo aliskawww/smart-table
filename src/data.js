@@ -57,6 +57,9 @@ export function initData(sourceData) {
         total: item.total_amount,
       }));
 
+      console.log("Initial data length:", data.length);
+      console.log("Query filters:", query.filter);
+
       // Применяем поиск
       if (query.search) {
         const searchLower = query.search.toLowerCase();
@@ -68,24 +71,31 @@ export function initData(sourceData) {
               row.customer.toLowerCase().includes(searchLower)) ||
             row.total.toString().includes(searchLower),
         );
+        console.log("After search, data length:", data.length);
       }
 
       // Применяем фильтры
       if (query.filter) {
         Object.keys(query.filter).forEach((key) => {
           const value = query.filter[key];
+          console.log(`Applying filter: ${key} = ${value}`);
+
           if (value !== undefined && value !== null && value !== "") {
             if (key === "date") {
-              // Для даты - частичное совпадение (как в тестах)
               data = data.filter((row) => row.date.includes(value));
+              console.log(`After date filter "${value}": ${data.length} rows`);
             } else if (key === "customer") {
-              // Для покупателя - частичное совпадение (регистронезависимо)
               data = data.filter((row) =>
                 row.customer.toLowerCase().includes(value.toLowerCase()),
               );
-            } else if (key === "searchBySeller" || key === "seller") {
-              // Для продавца - точное совпадение
+              console.log(
+                `After customer filter "${value}": ${data.length} rows`,
+              );
+            } else if (key === "seller") {
               data = data.filter((row) => row.seller === value);
+              console.log(
+                `After seller filter "${value}": ${data.length} rows`,
+              );
             } else if (key === "total") {
               const numValue = parseFloat(value);
               if (!isNaN(numValue)) {
@@ -101,6 +111,8 @@ export function initData(sourceData) {
               if (!isNaN(numValue)) {
                 data = data.filter((row) => row.total <= numValue);
               }
+            } else if (key === "searchBySeller") {
+              data = data.filter((row) => row.seller === value);
             }
           }
         });
@@ -109,6 +121,7 @@ export function initData(sourceData) {
       // Сортируем данные
       if (query.sort) {
         const [field, order] = query.sort.split(":");
+        console.log(`Sorting by: ${field} ${order}`);
 
         data.sort((a, b) => {
           let aVal = a[field];
@@ -118,7 +131,6 @@ export function initData(sourceData) {
             aVal = parseFloat(aVal);
             bVal = parseFloat(bVal);
           } else if (field === "date") {
-            // Для дат преобразуем в timestamp для правильного сравнения
             aVal = new Date(aVal).getTime();
             bVal = new Date(bVal).getTime();
           } else if (field === "customer" || field === "seller") {
@@ -140,6 +152,7 @@ export function initData(sourceData) {
       const start = (page - 1) * limit;
       const items = data.slice(start, start + limit);
 
+      console.log(`Returning ${items.length} items out of ${total} total`);
       return { total, items };
     }
 
