@@ -56,9 +56,9 @@ const { applyPagination, updatePagination } = initPagination(
   (element, pageNumber, isCurrent) => {
     const input = element.querySelector("input");
     const label = element.querySelector("span");
-    input.value = pageNumber;
-    input.checked = isCurrent;
-    label.textContent = pageNumber;
+    if (input) input.value = pageNumber;
+    if (input) input.checked = isCurrent;
+    if (label) label.textContent = pageNumber;
     return element;
   },
 );
@@ -75,13 +75,19 @@ const { applyFiltering, updateIndexes } = initFiltering(
 const applySearching = initSearching("search");
 
 const appRoot = document.querySelector("#app");
-appRoot.appendChild(sampleTable.container);
+if (appRoot) {
+  appRoot.appendChild(sampleTable.container);
+}
 
 async function init() {
   const indexes = await api.getIndexes();
-  updateIndexes(sampleTable.filter.elements, {
-    searchBySeller: indexes.sellers,
-  });
+  if (indexes.sellers) {
+    updateIndexes(sampleTable.filter.elements, {
+      searchBySeller: indexes.sellers,
+    });
+  }
+  // Вызываем начальный рендер
+  await render();
 }
 
-init().then(render);
+init().catch(console.error);
