@@ -55,10 +55,9 @@ export function initData(sourceData) {
         seller: sellers[item.seller_id],
         customer: customers[item.customer_id],
         total: item.total_amount,
-        originalIndex: index, // Сохраняем исходный порядок
+        originalIndex: index,
       }));
 
-      // Применяем поиск
       if (query.search) {
         const searchLower = query.search.toLowerCase();
         data = data.filter(
@@ -71,7 +70,6 @@ export function initData(sourceData) {
         );
       }
 
-      // Применяем фильтры
       if (query.filter) {
         Object.keys(query.filter).forEach((key) => {
           const value = query.filter[key];
@@ -104,7 +102,6 @@ export function initData(sourceData) {
         });
       }
 
-      // Сортируем данные
       if (query.sort) {
         const [field, order] = query.sort.split(":");
 
@@ -123,7 +120,6 @@ export function initData(sourceData) {
             bVal = (bVal || "").toLowerCase();
           }
 
-          // Сначала сравниваем по основному полю
           if (aVal !== bVal) {
             if (order === "asc") {
               return aVal > bVal ? 1 : -1;
@@ -132,11 +128,9 @@ export function initData(sourceData) {
             }
           }
 
-          // Если значения равны, сортируем по originalIndex (сохраняем исходный порядок)
           return a.originalIndex - b.originalIndex;
         });
       } else {
-        // Сортировка по умолчанию по id
         data.sort((a, b) => a.id - b.id);
       }
 
@@ -146,12 +140,11 @@ export function initData(sourceData) {
       const start = (page - 1) * limit;
       const items = data
         .slice(start, start + limit)
-        .map(({ originalIndex, ...rest }) => rest); // Убираем originalIndex из результата
+        .map(({ originalIndex, ...rest }) => rest);
 
       return { total, items };
     }
 
-    // Для реального API
     const qs = new URLSearchParams(query);
     const nextQuery = qs.toString();
 

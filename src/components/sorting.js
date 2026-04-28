@@ -8,7 +8,6 @@ export function initSorting(columns) {
     if (action && action.name === "sort") {
       const currentValue = action.dataset.value;
 
-      // Цикл сортировки: none -> up -> down -> none
       let nextValue;
       if (currentValue === "none") {
         nextValue = "up";
@@ -22,7 +21,6 @@ export function initSorting(columns) {
       field = action.dataset.field;
       order = nextValue;
 
-      // Сбрасываем все остальные колонки
       columns.forEach((column) => {
         if (column.dataset.field !== action.dataset.field) {
           column.dataset.value = "none";
@@ -33,7 +31,6 @@ export function initSorting(columns) {
     const newQuery = { ...query };
     delete newQuery.sort;
 
-    // Ищем активную сортировку в колонках
     let activeField = null;
     let activeOrder = null;
 
