@@ -79,7 +79,6 @@ const sampleTable = initTable(
   render,
 );
 
-
 // @todo: инициализация
 const { applyPagination, updatePagination } = initPagination(
   sampleTable.pagination.elements,
@@ -106,6 +105,10 @@ const applySearching = initSearching(sampleTable.search.elements); // Перед
 
 const appRoot = document.querySelector("#app");
 appRoot.appendChild(sampleTable.container);
+
+setTimeout(() => {
+  sampleTable.render(sourceData.slice(0, 10));
+}, 0);
 
 async function init() {
   const indexes = await api.getIndexes();
