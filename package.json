@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "NODE_ENV=test TESTING=true npm run dev & sleep 5 && playwright test"
   },
   "devDependencies": {
     "vite": "^6.0.5"
