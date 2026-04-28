@@ -6,9 +6,20 @@ export function initSorting(columns) {
     let order = null;
 
     if (action && action.name === "sort") {
-      action.dataset.value = sortMap[action.dataset.value];
+      const currentValue = action.dataset.value;
+
+      let nextValue;
+      if (currentValue === "none" || currentValue === "up") {
+        nextValue = "down";
+      } else if (currentValue === "down") {
+        nextValue = "none";
+      } else {
+        nextValue = sortMap[currentValue] || "asc";
+      }
+
+      action.dataset.value = nextValue;
       field = action.dataset.field;
-      order = action.dataset.value;
+      order = nextValue;
 
       columns.forEach((column) => {
         if (column.dataset.field !== action.dataset.field) {
@@ -24,12 +35,21 @@ export function initSorting(columns) {
       });
     }
 
-    const sort = field && order !== "none" ? `${field}:${order}` : null;
+    const newQuery = { ...query };
+    delete newQuery.sort;
 
-    // Для тестов: если сортировка не выбрана, не добавляем параметр sort
-    if (sort) {
-      return Object.assign({}, query, { sort });
+    let apiOrder = null;
+    if (order === "up" || order === "asc") {
+      apiOrder = "asc";
+    } else if (order === "down" || order === "desc") {
+      apiOrder = "desc";
     }
-    return query;
+
+    if (field && apiOrder && order !== "none") {
+      const sort = `${field}:${apiOrder}`;
+      return Object.assign({}, newQuery, { sort });
+    }
+
+    return newQuery;
   };
 }

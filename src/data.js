@@ -18,7 +18,6 @@ export function initData(sourceData) {
     }));
 
   const getIndexes = async () => {
-    // Если есть локальные данные (для тестов), используем их
     if (sourceData && sourceData.sellers && sourceData.customers) {
       sellers = makeIndex(
         sourceData.sellers,
@@ -49,7 +48,6 @@ export function initData(sourceData) {
   };
 
   const getRecords = async (query = {}, isUpdated = false) => {
-    // Если есть локальные данные (для тестов), используем их
     if (sourceData && sourceData.purchase_records && sellers && customers) {
       let data = sourceData.purchase_records.map((item) => ({
         id: item.receipt_id,
@@ -58,9 +56,6 @@ export function initData(sourceData) {
         customer: customers[item.customer_id],
         total: item.total_amount,
       }));
-
-      // Для тестов используем сортировку по id по умолчанию, если нет явной сортировки
-      const hasSort = query.sort;
 
       // Применяем поиск
       if (query.search) {
@@ -79,38 +74,77 @@ export function initData(sourceData) {
       if (query.filter) {
         Object.keys(query.filter).forEach((key) => {
           const value = query.filter[key];
-          if (value) {
-            if (key === "searchBySeller") {
-              data = data.filter((row) => row.seller === value);
-            } else if (key === "date") {
-              data = data.filter((row) => row.date === value);
+          if (value !== undefined && value !== null && value !== "") {
+            if (key === "date") {
+              data = data.filter((row) => row.date.includes(value));
             } else if (key === "customer") {
-              data = data.filter((row) => row.customer === value);
+              data = data.filter((row) =>
+                row.customer.toLowerCase().includes(value.toLowerCase()),
+              );
+            } else if (key === "searchBySeller" || key === "seller") {
+              data = data.filter((row) => row.seller === value);
             } else if (key === "total") {
-              data = data.filter((row) => row.total === parseFloat(value));
+              const numValue = parseFloat(value);
+              if (!isNaN(numValue)) {
+                data = data.filter((row) => row.total === numValue);
+              }
+            } else if (key === "totalFrom") {
+              const numValue = parseFloat(value);
+              if (!isNaN(numValue)) {
+                data = data.filter((row) => row.total >= numValue);
+              }
+            } else if (key === "totalTo") {
+              const numValue = parseFloat(value);
+              if (!isNaN(numValue)) {
+                data = data.filter((row) => row.total <= numValue);
+              }
             }
           }
         });
       }
 
-      // Применяем сортировку
+      // Сортируем данные
       if (query.sort) {
         const [field, order] = query.sort.split(":");
+
+        // Преобразуем 'up' и 'down' в 'asc' и 'desc'
+        let sortOrder = order;
+        if (order === "up") sortOrder = "asc";
+        if (order === "down") sortOrder = "desc";
+
         data.sort((a, b) => {
           let aVal = a[field];
           let bVal = b[field];
+
+          // Для total преобразуем в число
           if (field === "total") {
             aVal = parseFloat(aVal);
             bVal = parseFloat(bVal);
           }
-          if (order === "asc") {
-            return aVal > bVal ? 1 : -1;
+          // Для date - сравниваем как строки (формат YYYY-MM-DD корректно сравнивается)
+          else if (field === "date") {
+            aVal = aVal;
+            bVal = bVal;
+          }
+          // Для customer и seller - сравниваем как строки
+          else if (field === "customer" || field === "seller") {
+            aVal = aVal || "";
+            bVal = bVal || "";
+          }
+
+          // Сравнение с учетом регистра для строк
+          if (sortOrder === "asc") {
+            if (aVal < bVal) return -1;
+            if (aVal > bVal) return 1;
+            return 0;
           } else {
-            return aVal < bVal ? 1 : -1;
+            if (aVal > bVal) return -1;
+            if (aVal < bVal) return 1;
+            return 0;
           }
         });
-      } else if (!hasSort) {
-        // Сортируем по id по умолчанию для тестов
+      } else {
+        // Сортировка по умолчанию по id
         data.sort((a, b) => a.id - b.id);
       }
 
