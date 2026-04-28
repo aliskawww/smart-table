@@ -49,16 +49,14 @@ export function initData(sourceData) {
 
   const getRecords = async (query = {}, isUpdated = false) => {
     if (sourceData && sourceData.purchase_records && sellers && customers) {
-      let data = sourceData.purchase_records.map((item) => ({
+      let data = sourceData.purchase_records.map((item, index) => ({
         id: item.receipt_id,
         date: item.date,
         seller: sellers[item.seller_id],
         customer: customers[item.customer_id],
         total: item.total_amount,
+        originalIndex: index, // Сохраняем исходный порядок
       }));
-
-      console.log("Initial data length:", data.length);
-      console.log("Query filters:", query.filter);
 
       // Применяем поиск
       if (query.search) {
@@ -71,31 +69,21 @@ export function initData(sourceData) {
               row.customer.toLowerCase().includes(searchLower)) ||
             row.total.toString().includes(searchLower),
         );
-        console.log("After search, data length:", data.length);
       }
 
       // Применяем фильтры
       if (query.filter) {
         Object.keys(query.filter).forEach((key) => {
           const value = query.filter[key];
-          console.log(`Applying filter: ${key} = ${value}`);
-
           if (value !== undefined && value !== null && value !== "") {
             if (key === "date") {
               data = data.filter((row) => row.date.includes(value));
-              console.log(`After date filter "${value}": ${data.length} rows`);
             } else if (key === "customer") {
               data = data.filter((row) =>
                 row.customer.toLowerCase().includes(value.toLowerCase()),
               );
-              console.log(
-                `After customer filter "${value}": ${data.length} rows`,
-              );
-            } else if (key === "seller") {
+            } else if (key === "searchBySeller" || key === "seller") {
               data = data.filter((row) => row.seller === value);
-              console.log(
-                `After seller filter "${value}": ${data.length} rows`,
-              );
             } else if (key === "total") {
               const numValue = parseFloat(value);
               if (!isNaN(numValue)) {
@@ -111,8 +99,6 @@ export function initData(sourceData) {
               if (!isNaN(numValue)) {
                 data = data.filter((row) => row.total <= numValue);
               }
-            } else if (key === "searchBySeller") {
-              data = data.filter((row) => row.seller === value);
             }
           }
         });
@@ -121,7 +107,6 @@ export function initData(sourceData) {
       // Сортируем данные
       if (query.sort) {
         const [field, order] = query.sort.split(":");
-        console.log(`Sorting by: ${field} ${order}`);
 
         data.sort((a, b) => {
           let aVal = a[field];
@@ -138,21 +123,31 @@ export function initData(sourceData) {
             bVal = (bVal || "").toLowerCase();
           }
 
-          if (order === "asc") {
-            return aVal > bVal ? 1 : -1;
-          } else {
-            return aVal < bVal ? 1 : -1;
+          // Сначала сравниваем по основному полю
+          if (aVal !== bVal) {
+            if (order === "asc") {
+              return aVal > bVal ? 1 : -1;
+            } else {
+              return aVal < bVal ? 1 : -1;
+            }
           }
+
+          // Если значения равны, сортируем по originalIndex (сохраняем исходный порядок)
+          return a.originalIndex - b.originalIndex;
         });
+      } else {
+        // Сортировка по умолчанию по id
+        data.sort((a, b) => a.id - b.id);
       }
 
       const total = data.length;
       const limit = parseInt(query.limit) || 10;
       const page = parseInt(query.page) || 1;
       const start = (page - 1) * limit;
-      const items = data.slice(start, start + limit);
+      const items = data
+        .slice(start, start + limit)
+        .map(({ originalIndex, ...rest }) => rest); // Убираем originalIndex из результата
 
-      console.log(`Returning ${items.length} items out of ${total} total`);
       return { total, items };
     }
 
