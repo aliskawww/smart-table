@@ -14,8 +14,16 @@ import { initFiltering } from "./components/filtering.js";
 import { initSearching } from "./components/searching.js";
 
 // Исходные данные используемые в render()
-// const { data, ...indexes } = initData(sourceData);
 const api = initData();
+
+let datasetArray = [];
+if (sourceData && Array.isArray(sourceData.purchase_records)) {
+  datasetArray = sourceData.purchase_records;
+  console.log('Загружено записей для таблицы:', datasetArray.length);
+  console.log('Первая запись:', datasetArray[0]);
+} else {
+  console.error('Не найдены purchase_records в sourceData');
+}
 
 /**
  * Сбор и обработка полей из таблицы
@@ -106,13 +114,15 @@ const applySearching = initSearching(sampleTable.search.elements); // Перед
 const appRoot = document.querySelector("#app");
 appRoot.appendChild(sampleTable.container);
 
-setTimeout(() => {
-  sampleTable.render(sourceData.slice(0, 10));
-}, 0);
+if (datasetArray.length > 0) {
+  console.log('Рендерим первые 10 записей');
+  sampleTable.render(datasetArray.slice(0, 10));
+} else {
+  console.warn('Нет данных для начального рендера');
+}
 
 async function init() {
   const indexes = await api.getIndexes();
-
   updateIndexes(sampleTable.filter.elements, {
     searchBySeller: indexes.sellers,
   });
