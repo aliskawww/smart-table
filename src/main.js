@@ -24,9 +24,6 @@ const api = initData();
 function collectState() {
   const state = processFormData(new FormData(sampleTable.container));
 
-  console.log("Все поля state:", Object.keys(state));
-  console.log("state целиком:", state);
-
   const rowsPerPage = parseInt(state.rowsPerPage);
   const page = parseInt(state.page ?? 1);
 
