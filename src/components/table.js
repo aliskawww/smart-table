@@ -57,6 +57,14 @@ export function initTable(settings, onAction) {
       if (sellerCell) sellerCell.textContent = item.seller || "";
       if (totalCell) totalCell.textContent = item.total || "";
 
+      row.container.setAttribute("data-testid", "table-row");
+      row.container.setAttribute("role", "row");
+
+      const cells = row.container.querySelectorAll("[data-name]");
+      cells.forEach((cell) => {
+        cell.setAttribute("role", "cell");
+      });
+
       return row.container;
     });
 
