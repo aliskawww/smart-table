@@ -19,10 +19,25 @@ const api = initData();
 let datasetArray = [];
 if (sourceData && Array.isArray(sourceData.purchase_records)) {
   datasetArray = sourceData.purchase_records;
-  console.log('Загружено записей для таблицы:', datasetArray.length);
-  console.log('Первая запись:', datasetArray[0]);
-} else {
-  console.error('Не найдены purchase_records в sourceData');
+  console.log("Загружено записей для таблицы:", datasetArray.length);
+}
+
+function mapDataToTableRow(item) {
+  // Находим имя покупателя
+  const customer =
+    sourceData.customers?.find((c) => c.id === item.customer_id)?.name ||
+    item.customer_id;
+  // Находим имя продавца
+  const seller =
+    sourceData.sellers?.find((s) => s.id === item.seller_id)?.name ||
+    item.seller_id;
+
+  return {
+    date: item.date,
+    customer: customer,
+    seller: seller,
+    total: item.total_amount,
+  };
 }
 
 /**
@@ -73,7 +88,8 @@ async function render(action) {
 
   const { total, items } = await api.getRecords(query); // запрашиваем данные с собранными параметрами
 
-  updatePagination(total, query); // перерисовываем пагинатор
+  updatePagination(total, query);
+  const mappedItems = items.map(mapDataToTableRow); // перерисовываем пагинатор
   sampleTable.render(items);
 }
 
@@ -115,10 +131,10 @@ const appRoot = document.querySelector("#app");
 appRoot.appendChild(sampleTable.container);
 
 if (datasetArray.length > 0) {
-  console.log('Рендерим первые 10 записей');
+  console.log("Рендерим первые 10 записей");
   sampleTable.render(datasetArray.slice(0, 10));
 } else {
-  console.warn('Нет данных для начального рендера');
+  console.warn("Нет данных для начального рендера");
 }
 
 async function init() {

@@ -30,19 +30,20 @@ export function initTable(settings, onAction) {
   });
 
   const render = (data) => {
-    console.log("render в table.js вызван с данными:", data.length);
-
     const rowsContainer = root.container.querySelector('[data-name="rows"]');
-    console.log("rowsContainer:", rowsContainer);
 
     if (!rowsContainer) {
       console.error("Контейнер rows не найден!");
       return;
     }
 
+    if (!data || data.length === 0) {
+      rowsContainer.innerHTML = '<div class="empty-row">Нет данных</div>';
+      return;
+    }
+
     const nextRows = data.map((item) => {
       const row = cloneTemplate(rowTemplate);
-      console.log("Создана строка:", row.container);
 
       // Заполняем ячейки
       const dateCell = row.container.querySelector('[data-name="date"]');
