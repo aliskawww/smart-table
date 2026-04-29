@@ -6,98 +6,112 @@ export function initData(sourceData) {
   let sellers = null;
   let customers = null;
   let allRecords = null;
+  let useLocalData = false;
+
+  const checkApiAvailability = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const response = await fetch(`${BASE_URL}/sellers`, {
+        method: "HEAD",
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      return response.ok;
+    } catch (error) {
+      console.warn("API is not available, using local data:", error.message);
+      return false;
+    }
+  };
 
   const getIndexes = async () => {
     if (!sellers || !customers) {
-      try {
-        const sellersResponse = await fetch(`${BASE_URL}/sellers`);
-        const customersResponse = await fetch(`${BASE_URL}/customers`);
-
-        if (!sellersResponse.ok || !customersResponse.ok) {
-          throw new Error("API response not ok");
-        }
-
-        const sellersData = await sellersResponse.json();
-        const customersData = await customersResponse.json();
-
-        const sellersArray = Object.values(sellersData);
-        const customersArray = Object.values(customersData);
-
-        sellers = {};
-        sellersArray.forEach((seller, index) => {
-          const id = index + 1;
-          sellers[`seller_${id}`] = seller;
-          sellers[id] = seller;
-        });
-
-        customers = {};
-        customersArray.forEach((customer, index) => {
-          const id = index + 1;
-          customers[`customer_${id}`] = customer;
-          customers[id] = customer;
-        });
-      } catch (error) {
-        console.error("API unavailable, falling back to local data:", error);
-
-        if (sourceData && sourceData.sellers && sourceData.customers) {
-          sellers = makeIndex(
-            sourceData.sellers,
-            "id",
-            (v) => `${v.first_name} ${v.last_name}`,
-          );
-          customers = makeIndex(
-            sourceData.customers,
-            "id",
-            (v) => `${v.first_name} ${v.last_name}`,
-          );
-        } else {
-          throw error;
-        }
+      if (
+        sourceData &&
+        sourceData.sellers &&
+        sourceData.customers &&
+        useLocalData
+      ) {
+        sellers = makeIndex(
+          sourceData.sellers,
+          "id",
+          (v) => `${v.first_name} ${v.last_name}`,
+        );
+        customers = makeIndex(
+          sourceData.customers,
+          "id",
+          (v) => `${v.first_name} ${v.last_name}`,
+        );
+        return { sellers, customers };
       }
+
+      const sellersResponse = await fetch(`${BASE_URL}/sellers`);
+      const customersResponse = await fetch(`${BASE_URL}/customers`);
+
+      const sellersData = await sellersResponse.json();
+      const customersData = await customersResponse.json();
+
+      const sellersArray = Object.values(sellersData);
+      const customersArray = Object.values(customersData);
+
+      sellers = {};
+      sellersArray.forEach((seller, index) => {
+        const id = index + 1;
+        sellers[`seller_${id}`] = seller;
+        sellers[id] = seller;
+      });
+
+      customers = {};
+      customersArray.forEach((customer, index) => {
+        const id = index + 1;
+        customers[`customer_${id}`] = customer;
+        customers[id] = customer;
+      });
     }
+
     return { sellers, customers };
   };
 
   const loadAllRecords = async () => {
     if (!allRecords) {
-      try {
-        const response = await fetch(`${BASE_URL}/records?limit=1000`);
-
-        if (!response.ok) {
-          throw new Error("API response not ok");
-        }
-
-        const data = await response.json();
-        const recordsArray = data.items || [];
-
-        allRecords = recordsArray.map((item) => ({
+      if (
+        sourceData &&
+        sourceData.purchase_records &&
+        sellers &&
+        customers &&
+        useLocalData
+      ) {
+        allRecords = sourceData.purchase_records.map((item) => ({
           id: item.receipt_id,
           date: item.date,
-          seller: sellers[item.seller_id] || item.seller_id,
-          customer: customers[item.customer_id] || item.customer_id,
+          seller: sellers[item.seller_id],
+          customer: customers[item.customer_id],
           total: item.total_amount,
         }));
-      } catch (error) {
-        console.error("API unavailable, falling back to local data:", error);
-
-        if (sourceData && sourceData.purchase_records && sellers && customers) {
-          allRecords = sourceData.purchase_records.map((item) => ({
-            id: item.receipt_id,
-            date: item.date,
-            seller: sellers[item.seller_id],
-            customer: customers[item.customer_id],
-            total: item.total_amount,
-          }));
-        } else {
-          throw error;
-        }
+        return [...allRecords];
       }
+
+      const response = await fetch(`${BASE_URL}/records?limit=1000`);
+      const data = await response.json();
+      const recordsArray = data.items || [];
+
+      allRecords = recordsArray.map((item) => ({
+        id: item.receipt_id,
+        date: item.date,
+        seller: sellers[item.seller_id] || item.seller_id,
+        customer: customers[item.customer_id] || item.customer_id,
+        total: item.total_amount,
+      }));
     }
     return allRecords.map((record) => ({ ...record }));
   };
 
   const getRecords = async (query = {}) => {
     if (!sellers || !customers) {
+      const isApiAvailable = await checkApiAvailability();
+      useLocalData = !isApiAvailable && !!sourceData;
       await getIndexes();
     }
 
