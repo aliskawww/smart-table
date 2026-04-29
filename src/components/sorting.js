@@ -1,10 +1,5 @@
-import { sortMap } from "../lib/sort.js";
-
 export function initSorting(columns) {
   return (query, state, action) => {
-    let field = null;
-    let order = null;
-
     if (action && action.name === "sort") {
       const currentValue = action.dataset.value;
 
@@ -18,8 +13,6 @@ export function initSorting(columns) {
       }
 
       action.dataset.value = nextValue;
-      field = action.dataset.field;
-      order = nextValue;
 
       columns.forEach((column) => {
         if (column.dataset.field !== action.dataset.field) {
@@ -30,10 +23,10 @@ export function initSorting(columns) {
 
     const newQuery = { ...query };
     delete newQuery.sort;
-
+    
     let activeField = null;
     let activeOrder = null;
-
+    
     for (const column of columns) {
       const value = column.dataset.value;
       if (value !== "none") {
@@ -42,12 +35,11 @@ export function initSorting(columns) {
         break;
       }
     }
-
+    
     if (activeField && activeOrder) {
-      const sort = `${activeField}:${activeOrder}`;
-      return Object.assign({}, newQuery, { sort });
+      newQuery.sort = `${activeField}:${activeOrder}`;
     }
-
+    
     return newQuery;
   };
 }

@@ -28,21 +28,27 @@ export function initFiltering(elements) {
     }
 
     const filter = {};
-
-    Object.keys(elements).forEach((key) => {
-      const element = elements[key];
-      if (element && ["INPUT", "SELECT"].includes(element.tagName)) {
-        const value = element.value;
-        if (value !== undefined && value !== null && value !== "") {
-          const filterKey = element.getAttribute("name") || key;
-          filter[filterKey] = value;
+    
+    // Выводим все элементы и их значения
+    console.log("=== FILTER ELEMENTS ===");
+    Object.keys(elements).forEach(key => {
+      const el = elements[key];
+      console.log(`Key: "${key}", Tag: ${el?.tagName}, Name: ${el?.getAttribute('name')}, Value: "${el?.value}"`);
+      
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
+        const value = el.value;
+        const name = el.getAttribute('name') || key;
+        
+        if (value && value !== '') {
+          filter[name] = value;
+          console.log(`  -> Added filter: ${name} = "${value}"`);
         }
       }
     });
-
-    return Object.keys(filter).length
-      ? Object.assign({}, query, { filter })
-      : query;
+    
+    console.log("Final filter:", filter);
+    
+    return Object.keys(filter).length ? Object.assign({}, query, { filter }) : query;
   };
 
   return {
