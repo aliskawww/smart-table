@@ -25,7 +25,6 @@ function collectState() {
 }
 
 async function render(action) {
-  console.log("=== RENDER CALLED ===", action);
   let state = collectState();
   let query = {};
 
@@ -34,12 +33,7 @@ async function render(action) {
   query = applySorting(query, state, action);
   query = applyPagination(query, state, action);
 
-  console.log("Final query:", query);
-
   const { total, items } = await api.getRecords(query);
-
-  console.log("Total records:", total);
-  console.log("First 3 items totals:", items.slice(0, 3).map(i => i.total));
 
   updatePagination(total, query);
   sampleTable.render(items);

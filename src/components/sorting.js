@@ -23,10 +23,10 @@ export function initSorting(columns) {
 
     const newQuery = { ...query };
     delete newQuery.sort;
-    
+
     let activeField = null;
     let activeOrder = null;
-    
+
     for (const column of columns) {
       const value = column.dataset.value;
       if (value !== "none") {
@@ -35,11 +35,11 @@ export function initSorting(columns) {
         break;
       }
     }
-    
+
     if (activeField && activeOrder) {
       newQuery.sort = `${activeField}:${activeOrder}`;
     }
-    
+
     return newQuery;
   };
 }
