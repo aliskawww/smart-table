@@ -1,52 +1,12 @@
-import { makeIndex } from "./lib/utils.js";
-
 const BASE_URL = "https://webinars.webdev.education-services.ru/sp7-api";
 
-export function initData(sourceData) {
+export function initData() {
   let sellers = null;
   let customers = null;
   let allRecords = null;
-  let useLocalData = false;
-
-  const checkApiAvailability = async () => {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-      const response = await fetch(`${BASE_URL}/sellers`, {
-        method: "HEAD",
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      return response.ok;
-    } catch (error) {
-      console.warn("API is not available, using local data:", error.message);
-      return false;
-    }
-  };
 
   const getIndexes = async () => {
     if (!sellers || !customers) {
-      if (
-        sourceData &&
-        sourceData.sellers &&
-        sourceData.customers &&
-        useLocalData
-      ) {
-        sellers = makeIndex(
-          sourceData.sellers,
-          "id",
-          (v) => `${v.first_name} ${v.last_name}`,
-        );
-        customers = makeIndex(
-          sourceData.customers,
-          "id",
-          (v) => `${v.first_name} ${v.last_name}`,
-        );
-        return { sellers, customers };
-      }
-
       const sellersResponse = await fetch(`${BASE_URL}/sellers`);
       const customersResponse = await fetch(`${BASE_URL}/customers`);
 
@@ -76,23 +36,6 @@ export function initData(sourceData) {
 
   const loadAllRecords = async () => {
     if (!allRecords) {
-      if (
-        sourceData &&
-        sourceData.purchase_records &&
-        sellers &&
-        customers &&
-        useLocalData
-      ) {
-        allRecords = sourceData.purchase_records.map((item) => ({
-          id: item.receipt_id,
-          date: item.date,
-          seller: sellers[item.seller_id],
-          customer: customers[item.customer_id],
-          total: item.total_amount,
-        }));
-        return [...allRecords];
-      }
-
       const response = await fetch(`${BASE_URL}/records?limit=1000`);
       const data = await response.json();
       const recordsArray = data.items || [];
@@ -110,8 +53,6 @@ export function initData(sourceData) {
 
   const getRecords = async (query = {}) => {
     if (!sellers || !customers) {
-      const isApiAvailable = await checkApiAvailability();
-      useLocalData = !isApiAvailable && !!sourceData;
       await getIndexes();
     }
 
