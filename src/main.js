@@ -25,7 +25,7 @@ function collectState() {
 }
 
 async function render(action) {
-  let state = collectState();
+  const state = collectState();
   let query = {};
 
   query = applySearching(query, state, action);

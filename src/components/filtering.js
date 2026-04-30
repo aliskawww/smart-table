@@ -1,19 +1,27 @@
 export function initFiltering(elements) {
-  const updateIndexes = (elementsObject, indexes) => {
+  const updateIndexes = (elements, indexes) => {
     Object.keys(indexes).forEach((elementName) => {
-      const element = elementsObject[elementName];
-      if (element) {
-        while (element.options.length > 1) {
-          element.remove(1);
-        }
+      const select = elements[elementName];
+      const index = indexes[elementName];
 
-        Object.values(indexes[elementName]).forEach((name) => {
-          const option = document.createElement("option");
-          option.textContent = name;
-          option.value = name;
-          element.appendChild(option);
-        });
-      }
+      if (!select || !index) return;
+
+      while (select.options.length > 1) select.remove(1);
+
+      const uniq = new Set(
+        Object.values(index)
+          .map((v) => String(v ?? "").trim())
+          .filter(Boolean),
+      );
+
+      select.append(
+        ...Array.from(uniq).map((name) => {
+          const el = document.createElement("option");
+          el.textContent = name;
+          el.value = name;
+          return el;
+        }),
+      );
     });
   };
 
@@ -21,30 +29,50 @@ export function initFiltering(elements) {
     if (action && action.name === "clear") {
       const parent = action.closest(".filter-field");
       const input = parent?.querySelector("input, select");
-      if (input) {
-        input.value = "";
-      }
-      return query;
+      if (input) input.value = "";
     }
 
-    const filter = {};
-
-    Object.keys(elements).forEach((key) => {
-      const el = elements[key];
-
-      if (el && (el.tagName === "INPUT" || el.tagName === "SELECT")) {
-        const value = el.value;
-        const name = el.getAttribute("name") || key;
-
-        if (value && value !== "") {
-          filter[name] = value;
-        }
-      }
+    const next = { ...query };
+    Object.keys(next).forEach((key) => {
+      if (key.startsWith("filter[")) delete next[key];
     });
 
-    return Object.keys(filter).length
-      ? Object.assign({}, query, { filter })
-      : query;
+    const normalizeDateFilter = (raw) => {
+      const v = String(raw ?? "").trim();
+      if (!v) return null;
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+      if (/^\d{4}-\d{2}-\*$/.test(v)) return v;
+      if (/^\d{4}-\*-\*$/.test(v)) return v;
+
+      if (/^\d{4}-\d{2}$/.test(v)) return `${v}-*`;
+
+      if (/^\d{4}$/.test(v)) return `${v}-*-*`;
+
+      return null;
+    };
+
+    const filter = {};
+    Object.keys(elements).forEach((key) => {
+      const el = elements[key];
+      if (!el) return;
+
+      if (!["INPUT", "SELECT"].includes(el.tagName)) return;
+
+      const value = String(el.value ?? "").trim();
+      if (!value) return;
+
+      // специальная обработка даты под требования API
+      if (el.name === "date") {
+        const normalized = normalizeDateFilter(value);
+        if (normalized) filter[`filter[${el.name}]`] = normalized;
+        return;
+      }
+
+      filter[`filter[${el.name}]`] = value;
+    });
+
+    return Object.keys(filter).length ? Object.assign({}, next, filter) : next;
   };
 
   return {

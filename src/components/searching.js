@@ -1,8 +1,13 @@
 export function initSearching(searchField) {
   return (query, state) => {
-    if (state[searchField]) {
-      return Object.assign({}, query, { search: state[searchField] });
+    const value = String(state[searchField] ?? "").trim();
+
+    if (value) {
+      return Object.assign({}, query, { search: value });
     }
-    return query;
+
+    const next = { ...query };
+    delete next.search;
+    return next;
   };
 }

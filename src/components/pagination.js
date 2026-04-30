@@ -9,9 +9,8 @@ export const initPagination = (
   if (pageTemplate) {
     pages.firstElementChild?.remove();
   }
-  pages.innerHTML = "";
 
-  let pageCount = 0;
+  let pageCount;
 
   const applyPagination = (query, state, action) => {
     const limit = state.rowsPerPage;
@@ -40,7 +39,7 @@ export const initPagination = (
   };
 
   const updatePagination = (total, { page, limit }) => {
-    pageCount = Math.ceil(total / limit) || 1;
+    pageCount = Math.ceil(total / limit);
 
     const visiblePages = getPages(page, pageCount, 5);
 

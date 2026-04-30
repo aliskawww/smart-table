@@ -4,13 +4,9 @@ export function initSorting(columns) {
       const currentValue = action.dataset.value;
 
       let nextValue;
-      if (currentValue === "none") {
-        nextValue = "up";
-      } else if (currentValue === "up") {
-        nextValue = "down";
-      } else {
-        nextValue = "none";
-      }
+      if (currentValue === "none") nextValue = "up";
+      else if (currentValue === "up") nextValue = "down";
+      else nextValue = "none";
 
       action.dataset.value = nextValue;
 
@@ -22,24 +18,26 @@ export function initSorting(columns) {
     }
 
     const newQuery = { ...query };
-    delete newQuery.sort;
 
-    let activeField = null;
-    let activeOrder = null;
+    let field = null;
+    let order = null;
 
     for (const column of columns) {
       const value = column.dataset.value;
       if (value !== "none") {
-        activeField = column.dataset.field;
-        activeOrder = value === "up" ? "asc" : "desc";
+        field = column.dataset.field;
+        order = value;
         break;
       }
     }
 
-    if (activeField && activeOrder) {
-      newQuery.sort = `${activeField}:${activeOrder}`;
+    const sort = field && order ? `${field}:${order}` : null;
+
+    if (!sort) {
+      delete newQuery.sort;
+      return newQuery;
     }
 
-    return newQuery;
+    return Object.assign({}, newQuery, { sort });
   };
 }
